@@ -1,0 +1,11 @@
+{
+    "normal": {
+        "size_mean": 537,
+        "size_variance": 845,
+        "interarrival_mean": 0.01,
+        "flag_SYN": 0,
+        "flag_ACK": 0,
+        "flag_FIN": 0,
+        "flag_RST": 0
+    }
+}
