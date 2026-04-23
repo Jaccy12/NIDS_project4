@@ -1,70 +1,47 @@
 """
-Main execution file for NIDS Feature Extraction.
-
-This program:
-1. Reads packets from CSV
-2. Groups them into flows
-3. Applies sliding windows
-4. Extracts statistical features
-5. Stores extracted templates
+Main execution file for NIDS Feature Extraction + DTW Detection.
 """
 
 import csv
+import os
 
-# Import custom modules
 from packet import Packet
 from sliding_window import SlidingWindow
 from feature_extractor import FeatureExtractor
-from template_store import TemplateStore
+from matcher import Matcher
 
 
-# ==========================================================
-# CONFIGURATION
-# ==========================================================
+window_size = 5
+overlap = 2
+MAX_FLOWS = 100
 
-# Since CSV has only 10 packets,
-# we use small window size for testing.
-
-window_size = 5     # Number of packets per window
-overlap = 2         # Number of overlapping packets
+base_dir = os.path.dirname(__file__)
+template_file = os.path.join(base_dir, "..", "templates", "templates.json")
+data_file = os.path.join(base_dir, "..", "data", "traffic.csv")
 
 
-# ==========================================================
-# INITIALIZE COMPONENTS
-# ==========================================================
-
-# Dictionary to store sliding windows per flow
 windows = {}
 
-# Feature extractor object
 extractor = FeatureExtractor()
+matcher = Matcher(template_file)
 
-# Template storage system
-template_store = TemplateStore()
+packet_count = 0
 
 
-# ==========================================================
-# READ CSV PACKETS
-# ==========================================================
-
-with open("../data/traffic.csv") as file:
+with open(data_file) as file:
 
     reader = csv.DictReader(file)
 
-    print("Starting packet processing...")
+    print("\nStarting packet processing...\n")
 
-    # Process each packet row
     for row in reader:
 
-        # ------------------------------------------
-        # Create Packet Object
-        # ------------------------------------------
+        packet_count += 1
 
         packet = Packet(
             timestamp=float(row["timestamp"]),
             src_ip=row["src_ip"],
             dst_ip=row["dst_ip"],
-              # REQUIRED FOR 5-TUPLE FLOW IDENTIFICATION
             src_port=int(row["src_port"]),
             dst_port=int(row["dst_port"]),
             protocol=row["protocol"],
@@ -72,60 +49,45 @@ with open("../data/traffic.csv") as file:
             flags=row["flags"]
         )
 
-        # ------------------------------------------
-        # Identify flow using 5-tuple
-        # ------------------------------------------
-
         flow_id = packet.flow_id()
 
-        # ------------------------------------------
-        # Create new window if flow not exists
-        # ------------------------------------------
-
         if flow_id not in windows:
+            windows[flow_id] = SlidingWindow(window_size, overlap)
 
-            windows[flow_id] = SlidingWindow(
-                window_size,
-                overlap
-            )
-
-        # Get flow window
         window = windows[flow_id]
-
-        # ------------------------------------------
-        # Add packet to sliding window
-        # ------------------------------------------
 
         window.add_packet(packet)
 
         print("Packet added to window")
 
-        # ------------------------------------------
-        # Check if window is full
-        # ------------------------------------------
-
         if window.is_full():
 
             print("Window full — extracting features")
 
-            # Extract features
-            features = extractor.extract(
-                window.get_packets()
-            )
+            features = extractor.extract(window.get_packets())
 
             print("Features:", features)
 
-            # Store feature template
-            template_store.add_template("normal", features)
+            feature_sequence = [features]
 
-            # Slide window forward
+            label, distance, confidence = matcher.match(feature_sequence)
+
+            result = {
+                "flow_id": flow_id,
+                "prediction": label,
+                "distance": distance,
+                "confidence": confidence
+            }
+
+            print("\nDETECTION RESULT")
+            print(result)
+            print("-" * 50)
+
             window.slide()
 
+        if len(windows) > MAX_FLOWS:
+            windows.pop(next(iter(windows)))
 
-# ==========================================================
-# SAVE TEMPLATES
-# ==========================================================
 
-template_store.save()
-
-print("Processing complete.")
+print("\nProcessing complete.")
+print("Total packets processed:", packet_count)

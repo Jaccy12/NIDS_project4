@@ -1,11 +1,26 @@
 {
-    "normal": {
-        "size_mean": 537,
-        "size_variance": 845,
-        "interarrival_mean": 0.01,
-        "flag_SYN": 0,
-        "flag_ACK": 0,
-        "flag_FIN": 0,
-        "flag_RST": 0
-    }
+    "normal": [
+        {"size_mean": 500, "interarrival_mean": 0.1, "flag_SYN": 0},
+        {"size_mean": 520, "interarrival_mean": 0.12, "flag_SYN": 0},
+        {"size_mean": 510, "interarrival_mean": 0.11, "flag_SYN": 0}
+    ],
+
+    "port_scan": [
+        {"flag_SYN": 1, "dst_port": 20},
+        {"flag_SYN": 1, "dst_port": 21},
+        {"flag_SYN": 1, "dst_port": 22},
+        {"flag_SYN": 1, "dst_port": 23}
+    ],
+
+    "dos": [
+        {"flag_SYN": 1, "interarrival_mean": 0.001},
+        {"flag_SYN": 1, "interarrival_mean": 0.001},
+        {"flag_SYN": 1, "interarrival_mean": 0.001}
+    ],
+
+    "malware": [
+        {"size_mean": 300, "interarrival_mean": 1.0},
+        {"size_mean": 300, "interarrival_mean": 1.0},
+        {"size_mean": 300, "interarrival_mean": 1.0}
+    ]
 }
